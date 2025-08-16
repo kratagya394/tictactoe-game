@@ -1,35 +1,211 @@
-# Tic Tac Toe
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the game */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .cell {
+            /* Base styles for each cell in the grid */
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #f1f5f9; /* slate-100 */
+            transition: background-color 0.3s ease;
+            border: 2px solid #94a3b8; /* slate-400 */
+        }
+        .cell:hover {
+            /* Style for cell on hover */
+            background-color: #e2e8f0; /* slate-200 */
+        }
+        .cell.x {
+            /* Style for cells marked with 'X' */
+            color: #3b82f6; /* blue-500 */
+        }
+        .cell.o {
+            /* Style for cells marked with 'O' */
+            color: #ef4444; /* red-500 */
+        }
+        /* Removing borders to create the classic Tic Tac Toe look */
+        .cell:nth-child(3n) { border-right: none; }
+        .cell:nth-child(3n-1) { border-right: none; }
+        .cell:nth-child(3n-2) { border-left: none; }
+        .cell:nth-child(-n+3) { border-top: none; }
+        .cell:nth-child(n+7) { border-bottom: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen">
 
-A simple, modern Tic Tac Toe game built with HTML, CSS (Tailwind CSS), and JavaScript.
+    <main class="text-center p-4 md:p-8 bg-slate-800 rounded-2xl shadow-2xl">
+        <!-- Game Title -->
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">Tic Tac Toe</h1>
+        
+        <!-- Game Status Display -->
+        <p class="status text-xl md:text-2xl mb-6 h-8"></p>
 
-## Features
-- Responsive and clean UI using Tailwind CSS and custom styles
-- Interactive 3x3 game board
-- Play as X or O, with automatic turn switching
-- Win and draw detection with status messages
-- Restart button to reset the game
+        <!-- Game Board -->
+        <div class="game-board grid grid-cols-3 mx-auto">
+            <!-- The 9 cells of the board will be created here by JavaScript -->
+            <div data-cell-index="0" class="cell rounded-tl-lg"></div>
+            <div data-cell-index="1" class="cell"></div>
+            <div data-cell-index="2" class="cell rounded-tr-lg"></div>
+            <div data-cell-index="3" class="cell"></div>
+            <div data-cell-index="4" class="cell"></div>
+            <div data-cell-index="5" class="cell"></div>
+            <div data-cell-index="6" class="cell rounded-bl-lg"></div>
+            <div data-cell-index="7" class="cell"></div>
+            <div data-cell-index="8" class="cell rounded-br-lg"></div>
+        </div>
 
-## How to Play
-1. Open `index.html` in your web browser.
-2. Click on any cell to make your move.
-3. The game will display whose turn it is, and announce the winner or a draw.
-4. Click the **Restart Game** button to play again.
+        <!-- Restart Button -->
+        <button class="restart-button mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+            Restart Game
+        </button>
+    </main>
 
-## Technologies Used
-- HTML5
-- Tailwind CSS (via CDN)
-- Google Fonts (Inter)
-- Vanilla JavaScript
+    <script>
+        // --- DOM Element Selection ---
+        const statusDisplay = document.querySelector('.status');
+        const gameBoard = document.querySelector('.game-board');
+        const restartButton = document.querySelector('.restart-button');
+        const cells = document.querySelectorAll('.cell');
 
-## Customization
-- You can modify the styles in the `<style>` section of `index.html`.
-- The game logic is contained in the `<script>` tag at the bottom of the file.
+        // --- Game State Variables ---
+        let gameActive = true;
+        let currentPlayer = 'X';
+        // Represents the 3x3 board, initially all empty strings
+        let gameState = ["", "", "", "", "", "", "", "", ""];
 
-## Screenshot
-![Tic Tac Toe Screenshot](tictactoe.png)
+        // --- Messages ---
+        const winningMessage = () => `Player ${currentPlayer} has won!`;
+        const drawMessage = () => `Game ended in a draw!`;
+        const currentPlayerTurn = () => `It's ${currentPlayer}'s turn`;
 
----
+        // --- Winning Combinations ---
+        // An array of arrays, where each inner array represents a winning line
+        const winningConditions = [
+            [0, 1, 2], // Top row
+            [3, 4, 5], // Middle row
+            [6, 7, 8], // Bottom row
+            [0, 3, 6], // Left column
+            [1, 4, 7], // Middle column
+            [2, 5, 8], // Right column
+            [0, 4, 8], // Left-to-right diagonal
+            [2, 4, 6]  // Right-to-left diagonal
+        ];
 
-**Author:** Kratagya Verma
+        // --- Game Logic Functions ---
 
-Feel free to use, modify, and share this project!
+        /**
+         * Handles a click on a cell.
+         * @param {MouseEvent} clickedCellEvent - The event object from the click.
+         */
+        function handleCellClick(clickedCellEvent) {
+            const clickedCell = clickedCellEvent.target;
+            const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+
+            // Ignore the click if the cell is already played or the game is over
+            if (gameState[clickedCellIndex] !== "" || !gameActive) {
+                return;
+            }
+
+            // Process the move
+            handleCellPlayed(clickedCell, clickedCellIndex);
+            handleResultValidation();
+        }
+
+        /**
+         * Updates the game state and UI for a played cell.
+         * @param {HTMLElement} clickedCell - The DOM element of the cell that was clicked.
+         * @param {number} clickedCellIndex - The index of the cell in the gameState array.
+         */
+        function handleCellPlayed(clickedCell, clickedCellIndex) {
+            gameState[clickedCellIndex] = currentPlayer;
+            clickedCell.innerHTML = currentPlayer;
+            // Add a class for styling ('x' or 'o')
+            clickedCell.classList.add(currentPlayer.toLowerCase());
+        }
+
+        /**
+         * Checks if the game has been won or if it's a draw.
+         */
+        function handleResultValidation() {
+            let roundWon = false;
+            for (let i = 0; i < winningConditions.length; i++) {
+                const winCondition = winningConditions[i];
+                let a = gameState[winCondition[0]];
+                let b = gameState[winCondition[1]];
+                let c = gameState[winCondition[2]];
+
+                // If any of the cells in a win condition are empty, we can skip it
+                if (a === '' || b === '' || c === '') {
+                    continue;
+                }
+                // If all three cells in a win condition are the same, we have a winner
+                if (a === b && b === c) {
+                    roundWon = true;
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                statusDisplay.innerHTML = winningMessage();
+                gameActive = false;
+                return;
+            }
+
+            // Check for a draw (if all cells are filled and there's no winner)
+            let roundDraw = !gameState.includes("");
+            if (roundDraw) {
+                statusDisplay.innerHTML = drawMessage();
+                gameActive = false;
+                return;
+            }
+
+            // If we are here, the game is not over, so switch players
+            handlePlayerChange();
+        }
+
+        /**
+         * Switches the current player and updates the status display.
+         */
+        function handlePlayerChange() {
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            statusDisplay.innerHTML = currentPlayerTurn();
+        }
+
+        /**
+         * Resets the game to its initial state.
+         */
+        function handleRestartGame() {
+            gameActive = true;
+            currentPlayer = "X";
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            statusDisplay.innerHTML = currentPlayerTurn();
+            cells.forEach(cell => {
+                cell.innerHTML = "";
+                cell.classList.remove('x', 'o');
+            });
+        }
+
+        // --- Event Listeners ---
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        restartButton.addEventListener('click', handleRestartGame);
+
+        // --- Initial Game Setup ---
+        // Set the initial status message when the page loads
+        statusDisplay.innerHTML = currentPlayerTurn();
+    </script>
+</body>
+</html>
