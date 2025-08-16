@@ -30,6 +30,7 @@ A simple, modern Tic Tac Toe game built with HTML, CSS (Tailwind CSS), and JavaS
 
 ---
 
-**Author:** [Your Name]
+**Author:** kratagya verma
+
 
 Feel free to use, modify, and share this project!
