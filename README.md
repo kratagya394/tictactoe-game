@@ -26,7 +26,7 @@ A simple, modern Tic Tac Toe game built with HTML, CSS (Tailwind CSS), and JavaS
 - The game logic is contained in the `<script>` tag at the bottom of the file.
 
 ## Screenshot
-![Tic Tac Toe Screenshot](screenshot.png)
+![Tic Tac Toe Screenshot](tictactoe.png)
 
 ---
 
